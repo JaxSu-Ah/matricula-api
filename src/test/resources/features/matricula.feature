@@ -1,28 +1,45 @@
-Feature: : Matricula de cursos
+@P1
+Feature: Matrícula del alumno
   Como alumno de CIBERTEC
   Quiero matricularme en mis cursos
   Para llevarlos en el ciclo
 
-  Scenario: Matricula valida con descuento por promedio y anulacion
-    Given  que Ana consulta la API de matricula
-    When se matricula con el codigo "i202610001" en el curso "PS3511"
-    Then el codigo de respuesta es 201
-    And el monto de la matricula es 288,0
-    And el estado de la matricula es "REGISTRADA"
-    When anula es matricula
-    Then el codigo de respuesta es 200
-    And el estado de la matricula es "ANULADA"
+  Background:
+    Given que Carla consulta la API de matricula
+    And inicia sesion con usuario "i202610003" y clave "Cibertec2026"
 
-  Scenario Outline: Matricula rechazada por <motivo>
-    Given  que Ana consulta la API de matricula
-    When se matricula por codigo "<alumno>" en el curso "<curso>"
-    Then el codigo de respuesta es <status>
-    And el codigo de error es "<codigo>"
-    Examples:
-      | motivo             | alumno     | curso  | status | codigo               |
-      | deuda              | i202610004 | PS5511 | 422    | ALUMNO_CON_DEUDA     |
-      | duplicada          | i202610003 | IA5513 | 409    | MATRICULA_DUPLICADA  |
-      | falta de vacantes  | i202610001 | IA5513 | 409    | SIN_VACANTES         |
-      | cruce de horario   | i202610002 | QA5517 | 409    | CRUCE_HORARIO        |
-      | límite de créditos | i202610005 | TS5514 | 422    | LIMITE_CREDITOS      |
-      | alumno inexistente | i999999999 | PS5511 | 404    | ALUMNO_NO_ENCONTRADO |
+  @cotizacion
+  Scenario: Cotizar el curso
+    When cotiza el curso "PI5620" para el alumno "i202610003"
+    Then el codigo de respuesta es 200
+    And el total de la cotizacion es 720.0
+    And la respuesta cumple el esquema "cotizacion.json"
+
+  @matricula_pago
+  Scenario: Matricularse y pagar
+    When cotiza el curso "PI5620" para el alumno "i202610003"
+    Then el codigo de respuesta es 200
+    And el total de la cotizacion es 720.0
+    When se matricula con el codigo "i202610003" en el curso "PI5620"
+    Then el codigo de respuesta es 201
+    And el estado de la matricula es "REGISTRADA"
+    And el monto de la matricula coincide con la cotizacion
+    And la respuesta cumple el esquema "matricula.json"
+    And guarda el id de la matricula creada para "i202610003" en "PI5620"
+    When paga la matricula creada con el metodo "TARJETA"
+    Then el codigo de respuesta es 200
+    And el estado de la matricula es "PAGADA"
+    And la fecha de pago tiene valor
+    When consulta sus pagos
+    Then el codigo de respuesta es 200
+    And existe el pago de la matricula creada con metodo "TARJETA" y monto 720.0
+    And el numero de operacion del pago cumple el formato "^OP-[0-9]{6}$"
+
+  # Ejecutar despues de Matricularse y pagar, sin reiniciar la API entre escenarios.
+  @regla_negocio
+  Scenario: Regla de negocio que debe fallar
+    Given consulta la matricula pagada de "i202610003" en "PI5620" del periodo "2026-2"
+    When anula la matricula pagada
+    Then el codigo de respuesta es 409
+    And el codigo de error es "MATRICULA_PAGADA"
+    And la respuesta cumple el esquema "error.json"
