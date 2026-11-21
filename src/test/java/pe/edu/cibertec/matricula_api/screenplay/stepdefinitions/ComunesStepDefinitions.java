@@ -7,6 +7,7 @@ import net.serenitybdd.model.environment.EnvironmentSpecificConfiguration;
 import net.serenitybdd.screenplay.rest.abilities.CallAnApi;
 import net.thucydides.model.environment.SystemEnvironmentVariables;
 import pe.edu.cibertec.matricula_api.screenplay.questions.LaRespuesta;
+import pe.edu.cibertec.matricula_api.screenplay.questions.ElCodigoDeError;
 
 import static net.serenitybdd.screenplay.GivenWhenThen.seeThat;
 import static net.serenitybdd.screenplay.actors.OnStage.theActorCalled;
@@ -32,7 +33,7 @@ public class ComunesStepDefinitions {
 
     @And("el codigo de error es {string}")
     public void elCodigoDeErrorEsString(String codigo) {
-        theActorInTheSpotlight().should(seeThat(LaRespuesta.campo("codigo"), equalTo(codigo)));
+        theActorInTheSpotlight().should(seeThat(ElCodigoDeError.deLaRespuesta(), equalTo(codigo)));
     }
 
 
